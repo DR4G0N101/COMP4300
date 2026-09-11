@@ -4,12 +4,14 @@
 *           COMP4300
 * 
 * ***********************************************************/
+
 #include <cstddef>
 #include <iostream>
 #include <cstdint>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <SFML/Graphics.hpp>
 #include "imgui.h"
@@ -19,8 +21,45 @@
 //       FILE HANDLING          //
 //////////////////////////////////
 
-bool ReadConfigFile(const std::string& filename) {
-    
+struct WindowConfig {
+    unsigned int width{};
+    unsigned int height{};
+};
+
+struct FontConfig {
+    std::string filename;
+
+    unsigned int characterSize{};
+
+	int red{};
+	int green{};
+	int blue{};
+};
+
+struct ShapeConfig {
+    std::string type;
+    std::string name;
+
+	float positionX{};
+    float positionY{};
+	float velocityX{};
+	float velocityY{};
+
+	int red{};
+	int green{};
+	int blue{};
+
+	float width{};
+	float height{};
+	float radius{};
+    };
+
+bool ReadConfigFile(
+    const std::string& filename,
+    WindowConfig& windowConfig,
+    FontConfig& fontConfig,
+    std::vector<ShapeConfig>& shapes) {
+
     std::ifstream file(filename);
 
     if (!file.is_open()) {
@@ -30,17 +69,110 @@ bool ReadConfigFile(const std::string& filename) {
 
     std::string line;
 
-    std::cout << filename << " loaded to memory: \n";
+    // std::cout << filename << " loaded to memory: \n";
 
     while (std::getline(file, line)) {
-        
+
         if (line.empty()) {
             continue;
         }
 
-        std::cout << line << '\n';
-    }
+        std::istringstream lineStream(line);
+        std::string type;
 
+        if (!(lineStream >> type)) {
+            std::cerr << "Error reading line: " << line << "\n";
+            continue;
+        }
+
+        // std::cout << "Configuration type: "<< type << '\n';
+
+        if (type == "Window") {
+            if (!(lineStream
+                >> windowConfig.width
+                >> windowConfig.height)) {
+
+                std::cerr << "Error reading window configuration: " << line << "\n";
+                return false;
+            }
+        }
+        else if (type == "Font") {
+            if (!(lineStream
+                >> fontConfig.filename
+                >> fontConfig.characterSize
+                >> fontConfig.red
+                >> fontConfig.green
+                >> fontConfig.blue)) {
+
+                std::cerr << "Error reading font configuration: " << line << "\n";
+                return false;
+            }
+        }
+        else if (type == "Circle") {
+            ShapeConfig shape;
+            shape.type = type;
+
+            if (!(lineStream
+                >> shape.name
+                >> shape.positionX
+                >> shape.positionY
+                >> shape.velocityX
+                >> shape.velocityY
+                >> shape.red
+                >> shape.green
+                >> shape.blue
+                >> shape.radius)) {
+
+                std::cerr << "Error reading circle configuration: " << line << "\n";
+                return false;
+            }
+            shape.width = shape.radius * 2.0f;
+            shape.height = shape.radius * 2.0f;
+            shapes.push_back(shape);
+
+        }
+        else if (type == "Rectangle") {
+            ShapeConfig shape;
+            shape.type = type;
+
+            if (!(lineStream
+                >> shape.name
+                >> shape.positionX
+                >> shape.positionY
+                >> shape.velocityX
+                >> shape.velocityY
+                >> shape.red
+                >> shape.green
+                >> shape.blue
+                >> shape.width
+                >> shape.height)) {
+            
+                std::cerr << "Error reading rectangle configuration: " << line << "\n";
+                return false;
+            }
+            shapes.push_back(shape);
+        }
+        else {
+            std::cerr << "Unknown configuration type: " << type << "\n";
+            return false;
+		}
+
+
+    }
+    std::cout << "Window width = " << windowConfig.width << '\n';
+    std::cout << "Window height = " << windowConfig.height << "\n\n";
+    std::cout << "Font filename = " << fontConfig.filename << '\n';
+    std::cout << "Font character size = " << fontConfig.characterSize << '\n';
+    std::cout << "Font color = (" << fontConfig.red << ", " << fontConfig.green << ", " << fontConfig.blue << ")\n\n";
+
+	std::cout << "Shapes loaded from configuration file: " << shapes.size() << "\n";
+    for (const auto& shape : shapes) {
+        std::cout << "Shape type = " << shape.type << '\n';
+        std::cout << "Shape name = " << shape.name << '\n';
+        std::cout << "Shape position = (" << shape.positionX << ", " << shape.positionY << ")\n";
+        std::cout << "Shape velocity = (" << shape.velocityX << ", " << shape.velocityY << ")\n";
+        std::cout << "Shape color = (" << shape.red << ", " << shape.green << ", " << shape.blue << ")\n\n";
+    }
     return true;
 }
 
@@ -50,16 +182,18 @@ bool ReadConfigFile(const std::string& filename) {
 
 int main() {
 
-    if (!ReadConfigFile("config.txt")) {
+	WindowConfig windowConfig;
+	FontConfig fontConfig;
+    std::vector<ShapeConfig> shapes;
+
+    if (!ReadConfigFile("config.txt", windowConfig, fontConfig, shapes)) {
         return 1;
     }
 
     // create a new window of size w*h pixels
     // top-left of the window is (0,0) and bottom-right is (w,h)
     // you will have to read these from the config file
-    const unsigned int wWidth = 1280;
-    const unsigned int wHeight = 720;
-    sf::RenderWindow window(sf::VideoMode({ wWidth, wHeight }), "SFML Works!");
+    sf::RenderWindow window(sf::VideoMode({ windowConfig.width, windowConfig.height }), "Assignment 1");
     window.setFramerateLimit(60); // limit frame rate to 60 fps
 
     // initialize IMGUI and create a clock used for its internal timing
@@ -104,20 +238,31 @@ int main() {
     sf::Font myFont;
 
     // attempt to load the font from a file
-    if (!myFont.openFromFile("fonts/tech.ttf"))
+    if (!myFont.openFromFile(fontConfig.filename))
     {
         // if we can't load the font, print an error to the error console and exit
-        std::cerr << "Could not load font!\n";
+        std::cerr << "Could not load font: " << fontConfig.filename << "\n";
         ImGui::SFML::Shutdown();
         return 1;
     }
 
     // set up the text object that will be drawn to the screen
-    sf::Text text(myFont, "Sample Text", 24);
+    sf::Text text(myFont, "Sample Text", fontConfig.characterSize);
+	
+    text.setFillColor(sf::Color(
+        static_cast<std::uint8_t>(fontConfig.red), 
+        static_cast<std::uint8_t>(fontConfig.green), 
+        static_cast<std::uint8_t>(fontConfig.blue)
+    ));
+
 
     // position the top-left corner of the text so that the text aligns on the bottom
     // text character size is in pixels, so move the text up from the bottom by its height
-    text.setPosition({ 0.0f, wHeight - static_cast<float>(text.getCharacterSize()) });
+    text.setPosition({ 
+        0.0f, 
+        static_cast<float>(windowConfig.height) 
+        - static_cast<float>(text.getCharacterSize())
+        });
 
     // set up a character array to set the text
     char displayString[255] = "Sample Text";
