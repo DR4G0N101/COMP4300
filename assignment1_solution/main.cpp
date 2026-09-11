@@ -69,8 +69,9 @@ bool ReadConfigFile(
 
     std::string line;
 
-    // std::cout << filename << " loaded to memory: \n";
-
+	bool foundWindow = false;
+	bool foundFont = false;
+    
     while (std::getline(file, line)) {
 
         if (line.empty()) {
@@ -95,6 +96,7 @@ bool ReadConfigFile(
                 std::cerr << "Error reading window configuration: " << line << "\n";
                 return false;
             }
+            foundWindow = true;
         }
         else if (type == "Font") {
             if (!(lineStream
@@ -107,6 +109,7 @@ bool ReadConfigFile(
                 std::cerr << "Error reading font configuration: " << line << "\n";
                 return false;
             }
+			foundFont = true;
         }
         else if (type == "Circle") {
             ShapeConfig shape;
@@ -173,6 +176,24 @@ bool ReadConfigFile(
         std::cout << "Shape velocity = (" << shape.velocityX << ", " << shape.velocityY << ")\n";
         std::cout << "Shape color = (" << shape.red << ", " << shape.green << ", " << shape.blue << ")\n\n";
     }
+
+    if (!foundWindow) {
+		std::cerr << "Window configuration not found in file: " << filename << "\n";
+		return false;
+    }
+	if (!foundFont) {
+		std::cerr << "Font configuration not found in file: " << filename << "\n";
+        return false;
+	}
+    if(windowConfig.width == 0 || windowConfig.height == 0) {
+        std::cerr << "Window width and height must be greater than 0\n";
+        return false;
+	}
+    if(shapes.empty()) {
+        std::cerr << "No shapes found in configuration file: " << filename << "\n";
+        return false;
+	}
+
     return true;
 }
 
@@ -212,30 +233,12 @@ int main() {
     ImGui::GetStyle().ScaleAllSizes(uiScale);
     ImGui::GetIO().FontGlobalScale = uiScale;
 
-    if (!ImGui::SFML::Init(window)) {
-        std::cerr << "Could not initialise ImGui-SFML!\n";
-        return 1;
-    }
-
     // ImGui::GetIO().FontGlobalScale = 2.0f; // this line affect text size
-
-    // the imgui color {r, g, b} wheel requires floats from 0-1 instead of ints from 0-255
-    float c[3] = { 0.0f, 1.0f, 1.0f };
-
-    // let's make a shape that we will draw to the screen
-    float circleRadius = 50;    // radius to draw the circle
-    int circleSegments = 32;    // number of segments to draw the circle with
-    float circleSpeedX = 1.0f;  // we will use this to move the circle later
-    float circleSpeedY = 0.5f;  // you will read these values from the file
-    bool drawCircle = true;     // whether to draw the circle
-    bool drawText = true;       // whether to draw the text
-
-    // create the sfml circle shape based on our parameters
-    sf::CircleShape circle(circleRadius, circleSegments);   // create a circle shape with radius 50
-    circle.setPosition({ 10.0f, 10.0f });                     // set the top-left position of the circle
 
     // let's load a font, so we can display some text
     sf::Font myFont;
+    sf::CircleShape circle;
+	sf::RectangleShape rectangle;
 
     // attempt to load the font from a file
     if (!myFont.openFromFile(fontConfig.filename))
@@ -264,8 +267,6 @@ int main() {
         - static_cast<float>(text.getCharacterSize())
         });
 
-    // set up a character array to set the text
-    char displayString[255] = "Sample Text";
 
     // main loop - continues for each frame while window is open
     while (window.isOpen())
@@ -289,11 +290,9 @@ int main() {
                 std::cout << "Key pressed with code = "
                     << static_cast<int>(keyPressed->code) << "\n";
 
-                // example, what happens when x is pressed
-                if (keyPressed->code == sf::Keyboard::Key::X)
+                if (keyPressed->code == sf::Keyboard::Key::Escape)
                 {
-                    // reverse the x direction of the circle on the screen
-                    circleSpeedX *= -1.0f;
+                    window.close();
                 }
             }
         }
@@ -303,47 +302,36 @@ int main() {
         // ImGui::ShowDemoWindow();
 
         // draw the UI
-        ImGui::Begin("Window title");
-        ImGui::Text("Window text!");
-        ImGui::Checkbox("Draw Circle", &drawCircle);
-        ImGui::SameLine();
-        ImGui::Checkbox("Draw Text", &drawText);
-        ImGui::SliderFloat("Radius", &circleRadius, 0.0f, 300.0f);
-        ImGui::SliderInt("Sides", &circleSegments, 3, 64);
-        ImGui::ColorEdit3("Color Circle", c);
-        ImGui::InputText("Text", displayString, 255);
-        if (ImGui::Button("Set Text"))
-        {
-            text.setString(displayString);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Circle"))
-        {
-            circle.setPosition({ 0.0f, 0.0f });
-        }
+        ImGui::Begin("Shape Editor");
+        
+		ImGui::Text("Loaded shapes: %zu", shapes.size());
+
         ImGui::End();
-
-        // set the circle properties, because they may have been updated with the ui
-        circle.setFillColor(sf::Color(
-            static_cast<std::uint8_t>(c[0] * 255.0f),
-            static_cast<std::uint8_t>(c[1] * 255.0f),
-            static_cast<std::uint8_t>(c[2] * 255.0f)));
-        circle.setPointCount(static_cast<std::size_t>(circleSegments));
-        circle.setRadius(circleRadius);
-
-        // basic animation - move each shape if it's still in frame
-        circle.move({ circleSpeedX, circleSpeedY });
 
         // basic rendering function calls
         window.clear();     // clear the window of anything previously drawn
-        if (drawCircle)     // draw the circle if the boolean is true
-        {
-            window.draw(circle);
+
+        for (const ShapeConfig& shape : shapes) {
+            const sf::Color shapeColor(
+                static_cast<std::uint8_t>(shape.red),
+                static_cast<std::uint8_t>(shape.green),
+                static_cast<std::uint8_t>(shape.blue)
+			);
+
+            if (shape.type == "Circle") {
+				circle.setRadius(shape.radius);
+                circle.setPosition({ shape.positionX, shape.positionY });
+				circle.setFillColor(shapeColor);
+                window.draw(circle);
+            }
+			else if (shape.type == "Rectangle") {
+				rectangle.setSize({ shape.width, shape.height });
+				rectangle.setPosition({ shape.positionX, shape.positionY });
+				rectangle.setFillColor(shapeColor);
+				window.draw(rectangle);
+            }
         }
-        if (drawText)       // draw the text if the boolean is true
-        {
-            window.draw(text);
-        }
+
         ImGui::SFML::Render(window);    // draw the ui last so it's on top
         window.display();               // call the window display function
     }
