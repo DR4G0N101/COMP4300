@@ -1,13 +1,59 @@
+/************************************************************
+* 
+*          Assignment 1
+*           COMP4300
+* 
+* ***********************************************************/
 #include <cstddef>
 #include <iostream>
 #include <cstdint>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 #include <SFML/Graphics.hpp>
 #include "imgui.h"
 #include "imgui-SFML.h"
+
+//////////////////////////////////
+//       FILE HANDLING          //
+//////////////////////////////////
+
+bool ReadConfigFile(const std::string& filename) {
     
-int main()
-{
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Could not open configuration file: " << filename << "\n";
+        return false;
+    }
+
+    std::string line;
+
+    std::cout << filename << " loaded to memory: \n";
+
+    while (std::getline(file, line)) {
+        
+        if (line.empty()) {
+            continue;
+        }
+
+        std::cout << line << '\n';
+    }
+
+    return true;
+}
+
+//////////////////////////////////
+//            MAIN              //
+//////////////////////////////////
+
+int main() {
+
+    if (!ReadConfigFile("config.txt")) {
+        return 1;
+    }
+
     // create a new window of size w*h pixels
     // top-left of the window is (0,0) and bottom-right is (w,h)
     // you will have to read these from the config file
