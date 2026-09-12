@@ -250,7 +250,7 @@ int main() {
     }
 
     // set up the text object that will be drawn to the screen
-    sf::Text text(myFont, "Sample Text", fontConfig.characterSize);
+    sf::Text text(myFont, "", fontConfig.characterSize);
 	
     text.setFillColor(sf::Color(
         static_cast<std::uint8_t>(fontConfig.red), 
@@ -258,15 +258,9 @@ int main() {
         static_cast<std::uint8_t>(fontConfig.blue)
     ));
 
-
-    // position the top-left corner of the text so that the text aligns on the bottom
-    // text character size is in pixels, so move the text up from the bottom by its height
-    text.setPosition({ 
-        0.0f, 
-        static_cast<float>(windowConfig.height) 
-        - static_cast<float>(text.getCharacterSize())
-        });
-
+//////////////////////////////////
+//         MAIN LOOP            //
+//////////////////////////////////
 
     // main loop - continues for each frame while window is open
     while (window.isOpen())
@@ -308,6 +302,47 @@ int main() {
 
         ImGui::End();
 
+		const float windowWidth = static_cast<float>(windowConfig.width);
+		const float windowHeight = static_cast<float>(windowConfig.height);
+
+        for (ShapeConfig& shape : shapes) {
+
+            // Move the shape
+            shape.positionX += shape.velocityX;
+			shape.positionY += shape.velocityY;
+
+            // Left boundary
+            if (shape.positionX <= 0.0f) {
+                shape.positionX = 0.0f;
+                
+                if (shape.velocityX < 0.0f) {
+                    shape.velocityX = -shape.velocityX;
+                }
+			}
+			// Right boundary
+            else if (shape.positionX + shape.width >= windowWidth) {
+                shape.positionX = windowWidth - shape.width;
+
+                if(shape.velocityX > 0.0f) {
+                    shape.velocityX = -shape.velocityX;
+				}
+            }
+			// Top boundary
+            if (shape.positionY <= 0.0f) {
+                shape.positionY = 0.0f;
+                if (shape.velocityY < 0.0f) {
+                    shape.velocityY = -shape.velocityY;
+                }
+			}
+            // Bottom boundary
+            else if (shape.positionY + shape.height >= windowHeight) {
+                shape.positionY = windowHeight - shape.height;
+                if (shape.velocityY > 0.0f) {
+                    shape.velocityY = -shape.velocityY;
+                }
+			}
+        }
+
         // basic rendering function calls
         window.clear();     // clear the window of anything previously drawn
 
@@ -330,6 +365,26 @@ int main() {
 				rectangle.setFillColor(shapeColor);
 				window.draw(rectangle);
             }
+
+			// Draw the shape's name at its center
+            text.setString(shape.name);
+
+			// Find visible bunds of this particular name.
+            const sf::FloatRect textBounds = text.getLocalBounds();
+
+			// Make the visual centre of the text  origin, so that we can position it at the centre of the shape.
+            text.setOrigin({    
+                textBounds.position.x + textBounds.size.x / 2.0f,
+                textBounds.position.y + textBounds.size.y / 2.0f
+            });
+
+            // Find the center of the shape
+            const float shapeCenterX = shape.positionX + shape.width / 2.0f;
+            const float shapeCenterY = shape.positionY + shape.height / 2.0f;
+
+            // Put the center of the text at the center of the shape.
+            text.setPosition({shapeCenterX, shapeCenterY});
+            window.draw(text);
         }
 
         ImGui::SFML::Render(window);    // draw the ui last so it's on top
