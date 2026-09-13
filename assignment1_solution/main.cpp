@@ -1,9 +1,9 @@
-/************************************************************
+/*******************************************
 * 
 *          Assignment 1
 *           COMP4300
 * 
-* ***********************************************************/
+* ******************************************/
 
 #include <cstddef>
 #include <iostream>
@@ -52,6 +52,9 @@ struct ShapeConfig {
 	float width{};
 	float height{};
 	float radius{};
+    
+    float scale{ 1.0f };
+    bool visible{ true };
     };
 
 bool ReadConfigFile(
@@ -307,9 +310,14 @@ int main() {
 
         for (ShapeConfig& shape : shapes) {
 
+            if (!shape.visible) { continue; }
+
             // Move the shape
             shape.positionX += shape.velocityX;
 			shape.positionY += shape.velocityY;
+
+            const float scaledWidth = shape.width * shape.scale;
+            const float scaledHeight = shape.height * shape.scale;
 
             // Left boundary
             if (shape.positionX <= 0.0f) {
@@ -320,8 +328,8 @@ int main() {
                 }
 			}
 			// Right boundary
-            else if (shape.positionX + shape.width >= windowWidth) {
-                shape.positionX = windowWidth - shape.width;
+            else if (shape.positionX + scaledWidth >= windowWidth) {
+                shape.positionX = windowWidth - scaledWidth;
 
                 if(shape.velocityX > 0.0f) {
                     shape.velocityX = -shape.velocityX;
@@ -335,8 +343,8 @@ int main() {
                 }
 			}
             // Bottom boundary
-            else if (shape.positionY + shape.height >= windowHeight) {
-                shape.positionY = windowHeight - shape.height;
+            else if (shape.positionY + scaledHeight >= windowHeight) {
+                shape.positionY = windowHeight - scaledHeight;
                 if (shape.velocityY > 0.0f) {
                     shape.velocityY = -shape.velocityY;
                 }
@@ -354,13 +362,13 @@ int main() {
 			);
 
             if (shape.type == "Circle") {
-				circle.setRadius(shape.radius);
+				circle.setRadius(shape.radius * shape.scale);
                 circle.setPosition({ shape.positionX, shape.positionY });
 				circle.setFillColor(shapeColor);
                 window.draw(circle);
             }
 			else if (shape.type == "Rectangle") {
-				rectangle.setSize({ shape.width, shape.height });
+				rectangle.setSize({ shape.width * shape.scale, shape.height * shape.scale });
 				rectangle.setPosition({ shape.positionX, shape.positionY });
 				rectangle.setFillColor(shapeColor);
 				window.draw(rectangle);
@@ -379,8 +387,8 @@ int main() {
             });
 
             // Find the center of the shape
-            const float shapeCenterX = shape.positionX + shape.width / 2.0f;
-            const float shapeCenterY = shape.positionY + shape.height / 2.0f;
+            const float shapeCenterX = shape.positionX + shape.width * shape.scale / 2.0f;
+            const float shapeCenterY = shape.positionY + shape.height * shape.scale / 2.0f;
 
             // Put the center of the text at the center of the shape.
             text.setPosition({shapeCenterX, shapeCenterY});
