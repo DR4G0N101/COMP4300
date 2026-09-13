@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <iostream>
 #include <cstdint>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -261,6 +262,13 @@ int main() {
         static_cast<std::uint8_t>(fontConfig.blue)
     ));
 
+    std::size_t selectedShapeIndex{ 0 };
+
+    char shapeName[255]{};
+
+    std::snprintf(shapeName, sizeof(shapeName), "%s", shapes[selectedShapeIndex].name.c_str());
+
+
 //////////////////////////////////
 //         MAIN LOOP            //
 //////////////////////////////////
@@ -303,14 +311,63 @@ int main() {
         
 		ImGui::Text("Loaded shapes: %zu", shapes.size());
 
+        const char* selectedName = shapes[selectedShapeIndex].name.c_str();
+
+        if (ImGui::BeginCombo("Shape", selectedName)) {
+            for (std::size_t i = 0; i < shapes.size(); i++) {
+                const bool isSelected = (selectedShapeIndex == i);
+
+                ImGui::PushID(static_cast<int>(i));
+
+                if (ImGui::Selectable(shapes[i].name.c_str(), isSelected)) {
+                    selectedShapeIndex = i;
+
+                    // Copy the newly selected name into the editable buffer
+                    std::snprintf(shapeName, sizeof(shapeName), "%s", shapes[selectedShapeIndex].name.c_str());
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+
+        ImGui::Separator();
+        ShapeConfig& selectedShape = shapes[selectedShapeIndex];
+
+        ImGui::Text("Selected shape: %s", shapes[selectedShapeIndex].name.c_str());
+
+        ImGui::SliderFloat("Scale", &selectedShape.scale, 0.0f, 4.0f);
+        ImGui::SliderFloat("Velocity X", &selectedShape.velocityX, -8.0f, 8.0f);
+        ImGui::SliderFloat("Velocity Y", &selectedShape.velocityY, -8.0f, 8.0f);
+
+        float shapeColor[3] = {
+            static_cast<float>(selectedShape.red) / 255.0f,
+            static_cast<float>(selectedShape.green) / 255.0f,
+            static_cast<float>(selectedShape.blue) / 255.0f
+        };
+
+        if (ImGui::ColorEdit3("Color", shapeColor)) {
+            selectedShape.red = static_cast<int>(shapeColor[0] * 255.0f);
+            selectedShape.green = static_cast<int>(shapeColor[1] * 255.0f);
+            selectedShape.blue = static_cast<int>(shapeColor[2] * 255.0f);
+        };
+
+        if (ImGui::InputText("Name", shapeName, sizeof(shapeName))) {
+            selectedShape.name = shapeName;
+        }
+
         ImGui::End();
 
 		const float windowWidth = static_cast<float>(windowConfig.width);
 		const float windowHeight = static_cast<float>(windowConfig.height);
 
         for (ShapeConfig& shape : shapes) {
-
-            if (!shape.visible) { continue; }
 
             // Move the shape
             shape.positionX += shape.velocityX;
@@ -355,6 +412,9 @@ int main() {
         window.clear();     // clear the window of anything previously drawn
 
         for (const ShapeConfig& shape : shapes) {
+
+            if (!shape.visible) { continue; }
+
             const sf::Color shapeColor(
                 static_cast<std::uint8_t>(shape.red),
                 static_cast<std::uint8_t>(shape.green),
