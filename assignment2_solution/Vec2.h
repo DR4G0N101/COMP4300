@@ -23,13 +23,13 @@ public:
 
     Vec2 operator/(float val) const;
 
-    Vec2 operator+=(const Vec2 &rhs) const;
+    Vec2 operator+=(const Vec2 &rhs);
 
-    Vec2 operator-=(const Vec2 &rhs) const;
+    Vec2 operator-=(const Vec2 &rhs);
 
-    Vec2 operator*=(float val) const;
+    Vec2 operator*=(float val);
 
-    Vec2 operator/=(float val) const;
+    Vec2 operator/=(float val);
 
     [[nodiscard]] float dist(const Vec2 &v) const;
 

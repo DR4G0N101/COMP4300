@@ -30,24 +30,28 @@ Vec2 Vec2::operator/(const float val) const {
     return {x / val, y / val};
 }
 
-Vec2 Vec2::operator+=(const Vec2 &rhs) const {
-    // TODO
-    return {0.0f, 0.0f};
+Vec2 Vec2::operator+=(const Vec2 &rhs) {
+    x += rhs.x;
+	y += rhs.y;
+    return *this;
 }
 
-Vec2 Vec2::operator-=(const Vec2 &rhs) const {
-    // TODO
-    return {0.0f, 0.0f};
+Vec2 Vec2::operator-=(const Vec2 &rhs) {
+	x -= rhs.x;
+	y -= rhs.y;
+    return *this;
 }
 
-Vec2 Vec2::operator/=(const float val) const {
-    // TODO
-    return {0.0f, 0.0f};
+Vec2 Vec2::operator/=(const float val) {
+    x /= val;
+    y /= val;
+    return *this;
 }
 
-Vec2 Vec2::operator*=(const float val) const {
-    // TODO
-    return {0.0f, 0.0f};
+Vec2 Vec2::operator*=(const float val) {
+    x *= val;
+    y *= val;
+    return *this;
 }
 
 float Vec2::dist(const Vec2 &rhs) const {
