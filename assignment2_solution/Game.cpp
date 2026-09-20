@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
 
 Game::Game(const std::string &config) {
     init(config);
@@ -157,6 +158,29 @@ void Game::sMovement() {
             entity->cTransform->velocity = direction * playerSpeed;
         }
         entity->cTransform->pos += entity->cTransform->velocity;
+
+        if (entity->cInput && entity->cCollision) {
+            const auto windowSize = m_window.getSize();
+            const float radius = entity->cCollision->radius;
+
+            const float windowWidth =
+                static_cast<float>(windowSize.x);
+
+            const float windowHeight =
+                static_cast<float>(windowSize.y);
+
+            entity->cTransform->pos.x = std::clamp(
+                entity->cTransform->pos.x,
+                radius,
+                windowWidth - radius
+            );
+
+            entity->cTransform->pos.y = std::clamp(
+                entity->cTransform->pos.y,
+                radius,
+                windowHeight - radius
+            );
+        }
     }
 }
 
