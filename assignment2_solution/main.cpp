@@ -3,12 +3,12 @@
 #include "Game.h"
 #include "Vec2.h"
 #include <iostream>
+#include "EntityManager.h"
 
 int main() {
-    Game g("config.txt");
-    g.run();
 
-	// Test Vec2 class
+    // Test Vec2 class
+	std::cout << "Testing Vec2 class:\n";
     Vec2 v1(100, 100);
     Vec2 v2(200, 200);
 
@@ -20,6 +20,9 @@ int main() {
 
     Vec2 v4 = v1 * 2;
     std::cout << "v4 = v1 * 2: " << v4.x << ", " << v4.y << "\n";
+
+    Game g("config.txt");
+    g.run();
 
     return 0;
 }

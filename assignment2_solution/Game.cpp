@@ -61,17 +61,37 @@ void Game::setPaused(bool paused) {
 
 // respawn the player in the middle of the screen
 void Game::spawnPlayer() {
-    // TODO: Finish adding all properties of the player with the correct values from config
 
     // We create every entity by calling EntityManager.addEntity(tag)
     // This returns a std::shared_ptr<Entity>, so we use 'auto' to save typing
     auto entity = m_entities.addEntity("player");
 
-    // Give this entity a Transform, so it spawns at (200,200) with velocity (1,1) and angle 0
-    entity->cTransform = std::make_shared<CTransform>(Vec2(200.0f, 200.0f), Vec2(1.0f, 1.0f), 0.0f);
+    const auto windowSize = m_window.getSize();
+
+    const Vec2 centre{
+        static_cast<float>(windowSize.x) / 2.0f,
+        static_cast<float>(windowSize.y) / 2.0f,
+    };
+
+    constexpr float shapeRadius = 32.0f;
+    constexpr float collisionRadius = 32.0f;
+    constexpr int vertices = 8;
+
+    entity->cTransform = std::make_shared<CTransform>(
+        centre, 
+        Vec2(0.0f, 0.0f), 
+        0.0f
+    );
 
     // The entity's shape will have radius 32, 8 sides, dark grey fill, and red outline of thickness 4
-    entity->cShape = std::make_shared<CShape>(32.0f, 8, sf::Color(10, 10, 10), sf::Color(255, 0, 0), 4.0f);
+    entity->cShape = std::make_shared<CShape>(shapeRadius,
+        vertices,
+        sf::Color(10, 10, 10),
+        sf::Color(255, 0, 0),
+        4.0f
+    );
+
+    entity->cCollision = std::make_shared<CCollision>(collisionRadius);
 
     // Add an input component to the player so that we can use inputs
     entity->cInput = std::make_shared<CInput>();
@@ -167,17 +187,26 @@ void Game::sGUI() {
 void Game::sRender() {
     // TODO: change the code below to draw ALL of the entities
     // sample drawing of the player Entity that we have created
-    m_window.clear();
+    m_window.clear(sf::Color::Black);
 
-    // set the position of the shape based on the entity's transform->pos
-    m_player->cShape->circle.setPosition({m_player->cTransform->pos.x, m_player->cTransform->pos.y});
+    for (const auto& entity : m_entities.getEntities()) {
+        if (!entity->isActive()) { continue; }
+        if (!entity->cTransform || !entity->cShape) { continue; }
 
-    // set the rotation of the shape based on the entity's transform->angle
-    m_player->cTransform->angle += 1.0f;
-    m_player->cShape->circle.setRotation(sf::degrees(m_player->cTransform->angle));
+        entity->cTransform->angle += 1.0f;
 
-    // draw the entity's sf::CircleShape
-    m_window.draw(m_player->cShape->circle);
+        entity->cShape->circle.setPosition({
+            entity->cTransform->pos.x,
+            entity->cTransform->pos.y
+            }
+        );
+
+        entity->cShape->circle.setRotation(
+            sf::degrees(entity->cTransform->angle)
+        );
+
+        m_window.draw(entity->cShape->circle);
+    }
 
     // draw the ui last
     ImGui::SFML::Render(m_window);
