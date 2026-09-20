@@ -137,17 +137,27 @@ void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {
 }
 
 void Game::sMovement() {
-    // TODO: implement all entity movement in this function
-    // you should read the m_player->cInput component to determine if the player is moving
-    // sample:
-    for (auto e: m_entities.getEntities())
-    {
-        // if entity has transform component...
-    }
+    
+    constexpr float playerSpeed = 8.0f;
 
-    // Sample movement speed update
-    m_player->cTransform->pos.x += m_player->cTransform->velocity.x;
-    m_player->cTransform->pos.y += m_player->cTransform->velocity.y;
+    for (const auto& entity : m_entities.getEntities()) {
+        if (!entity->isActive() || !entity->cTransform) { continue; }
+
+        // Only entities with the CInput are controller by the player.
+        if (entity->cInput) {
+
+            Vec2 direction(0.0f, 0.0f);
+
+            if (entity->cInput->up) { direction.y -= 1.0f; }
+            if (entity->cInput->down) { direction.y += 1.0f; }
+            if (entity->cInput->left) { direction.x -= 1.0f; }
+            if (entity->cInput->right) { direction.x += 1.0f; }
+            if (direction.length() > 0.0f) { direction /= direction.length(); }
+
+            entity->cTransform->velocity = direction * playerSpeed;
+        }
+        entity->cTransform->pos += entity->cTransform->velocity;
+    }
 }
 
 void Game::sLifespan() {
@@ -233,13 +243,25 @@ void Game::sUserInput() {
         }
 
         // this event is triggered when a key is pressed
-        if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>())
-        {
-            switch (keyPressed->code)
-            {
+        if (const auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+            switch (keyPressed->code) {
                 case sf::Keyboard::Key::W:
                     std::cout << "W Key Pressed\n";
-                    // TODO: set player's input component "up" to true
+                    m_player->cInput->up = true;
+                    break;
+                case sf::Keyboard::Key::S:
+                    std::cout << "S Key Pressed\n";
+                    m_player->cInput->down = true;
+                    break;
+
+                case sf::Keyboard::Key::A:
+                    std::cout << "A Key Pressed\n";
+                    m_player->cInput->left = true;
+                    break;
+
+                case sf::Keyboard::Key::D:
+                    std::cout << "D Key Pressed\n";
+                    m_player->cInput->right = true;
                     break;
 
                 default:
@@ -248,13 +270,26 @@ void Game::sUserInput() {
         }
 
         // this event is triggered when a key is released
-        if (const auto *keyReleased = event->getIf<sf::Event::KeyReleased>())
-        {
-            switch (keyReleased->code)
-            {
+        if (const auto *keyReleased = event->getIf<sf::Event::KeyReleased>()) {
+            switch (keyReleased->code) {
                 case sf::Keyboard::Key::W:
                     std::cout << "W Key Released\n";
-                    // TODO: set player's input component "up" to false
+                    m_player->cInput->up = false;
+                    break;
+
+                case sf::Keyboard::Key::S:
+                    std::cout << "S Key Released\n";
+                    m_player->cInput->down = false;
+                    break;
+
+                case sf::Keyboard::Key::A:
+                    std::cout << "A Key Released\n";
+                    m_player->cInput->left = false;
+                    break;
+
+                case sf::Keyboard::Key::D:
+                    std::cout << "D Key Released\n";
+                    m_player->cInput->right = false;
                     break;
 
                 default:
