@@ -26,6 +26,7 @@ void Game::init(const std::string &path) {
     ImGui::GetIO().FontGlobalScale = 2.0f;
 
     spawnPlayer();
+    spawnEnemy();
 }
 
 void Game::run() {
@@ -108,9 +109,25 @@ void Game::spawnEnemy() {
     // make sure the enemy is spawned properly with the m_enemyConfig variables
     // the enemy must be spawned completely within the bounds of the window
 
-    // auto e = m_entities.addEntity("enemy");
-    // e->cTransform = std::make_shared<CTransform>(args);
-    // e->cShape = std::make_shared<CShape>(args);
+    auto enemy = m_entities.addEntity("enemy");
+
+    enemy->cTransform = std::make_shared<CTransform>(
+        Vec2(300.0f, 300.0f),   // Starting position
+        Vec2(2.0f, 1.0f),       // Movement velocity
+        0.0f                    // Starting rotation
+    );
+
+    enemy->cShape = std::make_shared<CShape>(
+        32.0f,                  // Shape radius
+        5,                      // Number of vertices
+        sf::Color::Green,
+        sf::Color::White,
+        2.0f                    // Outline thickness
+    );
+
+    enemy->cCollision = std::make_shared<CCollision>(32.0f);
+
+    enemy->cScore = std::make_shared<CScore>(50);
 
     // record when the most recent enemy was spawned
     m_lastEnemySpawnTime = m_currentFrame;
