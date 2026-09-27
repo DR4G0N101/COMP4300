@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <random>
+#include <cmath>
 
 
 Game::Game(const std::string &config) {
@@ -108,17 +109,65 @@ void Game::spawnPlayer() {
 
 // spawn an enemy at a random position
 void Game::spawnEnemy() {
-    // TODO:
-    // make sure the enemy is spawned properly with the m_enemyConfig variables
-    // the enemy must be spawned completely within the bounds of the window
 
-    static std::mt19937 randomEngine{ std::random_device{}()
+    static std::mt19937 randomEngine{
+        std::random_device{}()
     };
+
+    constexpr float radius = 32.0f;
+    constexpr float minimumSpeed = 2.0f;
+    constexpr float maximumSpeed = 5.0f;
+    constexpr float pi = 3.14159265359f;
+
+    const auto windowSize = m_window.getSize();
+
+    const float windowWidth =
+        static_cast<float>(windowSize.x);
+
+    const float windowHeight =
+        static_cast<float>(windowSize.y);
+
+    std::uniform_real_distribution<float> xDistribution(
+        radius,
+        windowWidth - radius
+    );
+
+    std::uniform_real_distribution<float> yDistribution(
+        radius,
+        windowHeight - radius
+    );
+
+    std::uniform_real_distribution<float> speedDistribution(
+        minimumSpeed,
+        maximumSpeed
+    );
+
+    std::uniform_real_distribution<float> angleDistribution(
+        0.0f,
+        2.0f * pi
+    );
 
     std::uniform_int_distribution<int> vertexDistribution(3, 8);
     std::uniform_int_distribution<int> colorDistribution(50, 255);
 
-    const int vertices = vertexDistribution(randomEngine);
+    const Vec2 position{
+        xDistribution(randomEngine),
+        yDistribution(randomEngine)
+    };
+
+    const float speed =
+        speedDistribution(randomEngine);
+
+    const float angle =
+        angleDistribution(randomEngine);
+
+    const Vec2 velocity{
+        std::cos(angle) * speed,
+        std::sin(angle) * speed
+    };
+
+    const int vertices =
+        vertexDistribution(randomEngine);
 
     const sf::Color fillColor{
         static_cast<std::uint8_t>(colorDistribution(randomEngine)),
@@ -129,24 +178,25 @@ void Game::spawnEnemy() {
     auto enemy = m_entities.addEntity("enemy");
 
     enemy->cTransform = std::make_shared<CTransform>(
-        Vec2(300.0f, 300.0f),   // Starting position
-        Vec2(2.0f, 1.0f),       // Movement velocity
-        0.0f                    // Starting rotation
+        position,
+        velocity,
+        0.0f
     );
 
     enemy->cShape = std::make_shared<CShape>(
-        32.0f,                  // Shape radius
-        vertices,               // Number of vertices
-        fillColor,              // Random fill colour
+        radius,
+        vertices,
+        fillColor,
         sf::Color::White,
-        2.0f                    // Outline thickness
+        2.0f
     );
 
-    enemy->cCollision = std::make_shared<CCollision>(32.0f);
+    enemy->cCollision =
+        std::make_shared<CCollision>(radius);
 
-    enemy->cScore = std::make_shared<CScore>(vertices * 100);
+    enemy->cScore =
+        std::make_shared<CScore>(vertices * 100);
 
-    // record when the most recent enemy was spawned
     m_lastEnemySpawnTime = m_currentFrame;
 }
 
