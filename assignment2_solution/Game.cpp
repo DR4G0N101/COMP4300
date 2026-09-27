@@ -3,6 +3,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <cstdint>
+#include <random>
+
 
 Game::Game(const std::string &config) {
     init(config);
@@ -109,6 +112,20 @@ void Game::spawnEnemy() {
     // make sure the enemy is spawned properly with the m_enemyConfig variables
     // the enemy must be spawned completely within the bounds of the window
 
+    static std::mt19937 randomEngine{ std::random_device{}()
+    };
+
+    std::uniform_int_distribution<int> vertexDistribution(3, 8);
+    std::uniform_int_distribution<int> colorDistribution(50, 255);
+
+    const int vertices = vertexDistribution(randomEngine);
+
+    const sf::Color fillColor{
+        static_cast<std::uint8_t>(colorDistribution(randomEngine)),
+        static_cast<std::uint8_t>(colorDistribution(randomEngine)),
+        static_cast<std::uint8_t>(colorDistribution(randomEngine))
+    };
+
     auto enemy = m_entities.addEntity("enemy");
 
     enemy->cTransform = std::make_shared<CTransform>(
@@ -119,15 +136,15 @@ void Game::spawnEnemy() {
 
     enemy->cShape = std::make_shared<CShape>(
         32.0f,                  // Shape radius
-        5,                      // Number of vertices
-        sf::Color::Green,
+        vertices,               // Number of vertices
+        fillColor,              // Random fill colour
         sf::Color::White,
         2.0f                    // Outline thickness
     );
 
     enemy->cCollision = std::make_shared<CCollision>(32.0f);
 
-    enemy->cScore = std::make_shared<CScore>(50);
+    enemy->cScore = std::make_shared<CScore>(vertices * 100);
 
     // record when the most recent enemy was spawned
     m_lastEnemySpawnTime = m_currentFrame;
