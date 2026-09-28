@@ -210,10 +210,44 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> e) {
 }
 
 // spawns a bullet from a given entity to a target location
-void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2 &target) {
+void Game::spawnBullet(std::shared_ptr<Entity> shooter, const Vec2 &target) {
     // TODO: implement the spawning of a bullet which travels toward target
     // - bullet speed is given as a scalar speed
     // - you must set the velocity by using formula in notes
+
+    constexpr float bulletSpeed = 20.0f;
+    constexpr float bulletRadius = 10.0f;
+    constexpr int bulletVertices = 20;
+    constexpr int bulletLifespan = 90;
+
+    const Vec2 direction = target - shooter->cTransform->pos;
+    const float distance = direction.length();
+
+    // Avoid division by zero if the mouse is exactly at the player's centre
+    if (distance == 0.0f) { return; }
+
+    const Vec2 normalizeDirection = direction / distance;
+
+    const Vec2 velocity = normalizeDirection * bulletSpeed;
+
+    auto bullet = m_entities.addEntity("bullet");
+
+    bullet->cTransform = std::make_shared<CTransform>(
+        shooter->cTransform->pos,
+        velocity,
+        0.0f
+    );
+
+    bullet->cShape = std::make_shared<CShape>(
+        bulletRadius,
+        bulletVertices,
+        sf::Color::White,
+        sf::Color::Red,
+        2.0f
+    );
+
+    bullet->cCollision = std::make_shared<CCollision>(bulletRadius);
+    bullet->cLifespan = std::make_shared<CLifespan>(bulletLifespan);
 }
 
 void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity) {
@@ -246,23 +280,36 @@ void Game::sMovement() {
             const auto windowSize = m_window.getSize();
             const float radius = entity->cCollision->radius;
 
-            const float windowWidth =
-                static_cast<float>(windowSize.x);
+            const float windowWidth = static_cast<float>(windowSize.x);
+            const float windowHeight = static_cast<float>(windowSize.y);
 
-            const float windowHeight =
-                static_cast<float>(windowSize.y);
+            entity->cTransform->pos.x = std::clamp(entity->cTransform->pos.x, radius, windowWidth - radius);
 
-            entity->cTransform->pos.x = std::clamp(
-                entity->cTransform->pos.x,
-                radius,
-                windowWidth - radius
-            );
+            entity->cTransform->pos.y = std::clamp(entity->cTransform->pos.y, radius, windowHeight - radius);
+        }
 
-            entity->cTransform->pos.y = std::clamp(
-                entity->cTransform->pos.y,
-                radius,
-                windowHeight - radius
-            );
+        if (entity->tag() == "enemy" && entity->cCollision) {
+
+            const auto windowSize = m_window.getSize();
+            const float windowWidth = static_cast<float>(windowSize.x);
+            const float windowHeight = static_cast<float>(windowSize.y);
+            const float radius = entity->cCollision->radius;
+            auto& position = entity->cTransform->pos;
+            auto& velocity = entity->cTransform->velocity;
+
+            if (position.x - radius <= 0.0f) {
+                position.x = radius;
+                velocity.x = std::abs(velocity.x);
+            } else if (position.x + radius >= windowWidth) {
+                position.x = windowWidth - radius;
+                velocity.x = -std::abs(velocity.x);
+            } if (position.y - radius <= 0.0f) {
+                position.y = radius;
+                velocity.y = std::abs(velocity.y);
+            } else if (position.y + radius >= windowHeight) {
+                position.y = windowHeight - radius;
+                velocity.y = -std::abs(velocity.y);
+            }
         }
     }
 }
@@ -299,7 +346,7 @@ void Game::sEnemySpawner() {
     if (framesSinceLastSpawn >= spawnInterval) {
         spawnEnemy();
     }
-};
+}
 
 void Game::sGUI() {
     ImGui::Begin("Geometry Wars");
@@ -419,15 +466,20 @@ void Game::sUserInput() {
             if (ImGui::GetIO().WantCaptureMouse)
             { continue; }
 
-            if (mouseButtonPressed->button == sf::Mouse::Button::Left)
-            {
+            if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
                 std::cout << "Left Mouse Button Clicked at(" << mouseButtonPressed->position.x
                           << ", " << mouseButtonPressed->position.y << ")\n";
-                // TODO: call spawnBullet here
+                
+                // spawnBullet
+                const Vec2 target{
+                    static_cast<float>(mouseButtonPressed->position.x),
+                    static_cast<float>(mouseButtonPressed->position.y)
+                };
+                spawnBullet(m_player, target);
+
             }
 
-            if (mouseButtonPressed->button == sf::Mouse::Button::Right)
-            {
+            if (mouseButtonPressed->button == sf::Mouse::Button::Right) {
                 std::cout << "Right Mouse Button Clicked at(" << mouseButtonPressed->position.x
                           << ", " << mouseButtonPressed->position.y << ")\n";
                 // TODO: call special weapon here
