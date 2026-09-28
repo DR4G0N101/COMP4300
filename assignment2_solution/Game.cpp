@@ -30,7 +30,6 @@ void Game::init(const std::string &path) {
     ImGui::GetIO().FontGlobalScale = 2.0f;
 
     spawnPlayer();
-    spawnEnemy();
 }
 
 void Game::run() {
@@ -292,7 +291,15 @@ void Game::sCollision() {
 
 void Game::sEnemySpawner() {
     // TODO: code which implements enemy spawning should go here
-}
+
+    constexpr int spawnInterval = 60;
+
+    const int framesSinceLastSpawn = m_currentFrame - m_lastEnemySpawnTime;
+
+    if (framesSinceLastSpawn >= spawnInterval) {
+        spawnEnemy();
+    }
+};
 
 void Game::sGUI() {
     ImGui::Begin("Geometry Wars");
