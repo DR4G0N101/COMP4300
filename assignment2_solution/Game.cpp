@@ -6,26 +6,31 @@
 #include <cstdint>
 #include <random>
 #include <cmath>
+#include <fstream>
+#include <stdexcept>
 
 
 Game::Game(const std::string &config) {
     init(config);
 }
 
-void Game::init(const std::string &path) {
-    // TODO: read in config file here
-    //       use the pre made PlayerConfig, EnemyConfig, BulletConfig variables
+void Game::init(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) { throw std::runtime_error("Could not open config file"); }
 
-    // set up default window parameters
-    m_window.create(sf::VideoMode({1280u, 720u}), "Assignment 2");
-    m_window.setFramerateLimit(60);
+    std::string section;
+    unsigned int width, height, frameLimit;
+    int fullscreen;
 
-    if (!ImGui::SFML::Init(m_window))
-    {
+    file >> section >> width >> height >> frameLimit >> fullscreen;
+
+    m_window.create(sf::VideoMode({ width, height }), "Assignment 2");
+    m_window.setFramerateLimit(frameLimit);
+
+    if (!ImGui::SFML::Init(m_window)) {
         throw std::runtime_error("Failed to initialize ImGui-SFML");
     }
 
-    // scale the imgui ui and text size by 2
     ImGui::GetStyle().ScaleAllSizes(2.0f);
     ImGui::GetIO().FontGlobalScale = 2.0f;
 
