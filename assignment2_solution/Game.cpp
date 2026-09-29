@@ -345,6 +345,31 @@ void Game::sCollision() {
 
                 break;
             }
+
+            if (!m_player ||
+                !m_player->isActive() ||
+                !m_player->cTransform ||
+                !m_player->cCollision)
+            {
+                return;
+            }
+
+            for (const auto& enemy : m_entities.getEntities("enemy")) {
+                if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue; }
+
+                const float distance = m_player->cTransform->pos.dist(enemy->cTransform->pos);
+
+                const float collisionDistance = m_player->cCollision->radius + enemy->cCollision->radius;
+
+                if (distance < collisionDistance) {
+                    enemy->destroy();
+                    m_player->destroy();
+
+                    spawnPlayer();
+
+                    break;
+                }
+            }
         }
     }
 }
