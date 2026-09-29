@@ -325,15 +325,28 @@ void Game::sLifespan() {
 }
 
 void Game::sCollision() {
-    // TODO: implement all proper collisions between entities
-    // be sure to use the collision radius, not the shape radius
-    // sample
-//    for (auto bullet: m_entities.getEntities("bullet")) {
-//        for (auto m_entities: m_entities.getEntities()) {
-//            //check collision
-//        }
-//        // we need another loop for small entities because small entities don't spawn further
-//    }
+    for (const auto& bullet : m_entities.getEntities("bullet")) {
+        if (!bullet->isActive() || !bullet->cTransform || !bullet->cCollision) { continue; }
+
+        for (const auto& enemy : m_entities.getEntities("enemy")) {
+            if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue; }
+
+            const float distance = bullet->cTransform->pos.dist(enemy->cTransform->pos);
+
+            const float collisionDistance = bullet->cCollision->radius + enemy->cCollision->radius;
+
+            if (distance < collisionDistance) {
+                bullet->destroy();
+                enemy->destroy();
+
+                if (enemy->cScore) { m_score += enemy->cScore->score; }
+
+                std::cout << "Score: " << m_score << '\n';
+
+                break;
+            }
+        }
+    }
 }
 
 void Game::sEnemySpawner() {
