@@ -358,7 +358,9 @@ void Game::sLifespan() {
     // - if it has lifespan and its time is up destroy the entity
 }
 
-void Game::sCollision() {
+void Game::sCollision()
+{
+    // Bullet collision with large enemies
     for (const auto& bullet : m_entities.getEntities("bullet")) {
         if (!bullet->isActive() || !bullet->cTransform || !bullet->cCollision) { continue; }
 
@@ -370,7 +372,6 @@ void Game::sCollision() {
             const float collisionDistance = bullet->cCollision->radius + enemy->cCollision->radius;
 
             if (distance < collisionDistance) {
-
                 spawnSmallEnemies(enemy);
 
                 bullet->destroy();
@@ -382,32 +383,68 @@ void Game::sCollision() {
 
                 break;
             }
+        }
+    }
 
-            if (!m_player ||
-                !m_player->isActive() ||
-                !m_player->cTransform ||
-                !m_player->cCollision)
-            {
-                return;
+    // Bullet collision with small enemies
+    for (const auto& bullet : m_entities.getEntities("bullet")) {
+        if (!bullet->isActive() || !bullet->cTransform || !bullet->cCollision) { continue; }
+
+        for (const auto& enemy : m_entities.getEntities("smallEnemy")) {
+            if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue; }
+
+            const float distance = bullet->cTransform->pos.dist(enemy->cTransform->pos);
+
+            const float collisionDistance = bullet->cCollision->radius + enemy->cCollision->radius;
+
+            if (distance < collisionDistance) {
+                bullet->destroy();
+                enemy->destroy();
+
+                if (enemy->cScore) { m_score += enemy->cScore->score; }
+
+                std::cout << "Score: " << m_score << '\n';
+                break;
             }
+        }
+    }
 
-            for (const auto& enemy : m_entities.getEntities("enemy")) {
-                if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue; }
+    // Stop here if there is no valid player
+    if (!m_player || !m_player->isActive() || !m_player->cTransform || !m_player->cCollision) { return; }
 
-                const float distance = m_player->cTransform->pos.dist(enemy->cTransform->pos);
+    // Player collision with large enemies
+    for (const auto& enemy : m_entities.getEntities("enemy")) {
+        if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue;}
 
-                const float collisionDistance = m_player->cCollision->radius + enemy->cCollision->radius;
+        const float distance = m_player->cTransform->pos.dist(enemy->cTransform->pos);
 
-                if (distance < collisionDistance) {
-                    enemy->destroy();
-                    spawnSmallEnemies(enemy);
-                    m_player->destroy();
+        const float collisionDistance = m_player->cCollision->radius + enemy->cCollision->radius;
 
-                    spawnPlayer();
+        if (distance < collisionDistance) {
+            spawnSmallEnemies(enemy);
 
-                    break;
-                }
-            }
+            enemy->destroy();
+            m_player->destroy();
+
+            spawnPlayer();
+            return;
+        }
+    }
+
+    // Player collision with small enemies
+    for (const auto& enemy : m_entities.getEntities("smallEnemy")) {
+        if (!enemy->isActive() || !enemy->cTransform || !enemy->cCollision) { continue; }
+
+        const float distance = m_player->cTransform->pos.dist(enemy->cTransform->pos);
+
+        const float collisionDistance =m_player->cCollision->radius + enemy->cCollision->radius;
+
+        if (distance < collisionDistance) {
+            enemy->destroy();
+            m_player->destroy();
+
+            spawnPlayer();
+            return;
         }
     }
 }
