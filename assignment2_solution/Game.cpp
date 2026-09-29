@@ -200,13 +200,47 @@ void Game::spawnEnemy() {
 }
 
 // spawns the small enemies when a big one (input entity e) explodes
-void Game::spawnSmallEnemies(std::shared_ptr<Entity> e) {
-    // TODO: spawn small enemies at the location of the input enemy e
+void Game::spawnSmallEnemies(std::shared_ptr<Entity> enemy) {
+    if (!enemy || !enemy->cTransform || !enemy->cShape || !enemy->cCollision) { return; }
 
-    // when we create the smaller enemy, we have to read the values of the original enemy
-    // - spawn a number of small enemies equal to the vertices of the original enemy
-    // - set each small enemy to the same color as the original, half the size
-    // - small enemies are worth double points of the original enemy
+    const std::size_t vertexCount = enemy->cShape->circle.getPointCount();
+
+    if (vertexCount == 0) { return; }
+
+    constexpr float pi = 3.14159265359f;
+    constexpr int smallEnemyLifespan = 90;
+
+    const float angleStep = (2.0f * pi) / static_cast<float>(vertexCount);
+    const float originalSpeed = enemy->cTransform->velocity.length();
+    const float smallRadius = enemy->cShape->circle.getRadius() / 2.0f;
+    const float smallCollisionRadius = enemy->cCollision->radius / 2.0f;
+
+    const sf::Color fillColor = enemy->cShape->circle.getFillColor();
+    const sf::Color outlineColor = enemy->cShape->circle.getOutlineColor();
+    const float outlineThickness = enemy->cShape->circle.getOutlineThickness();
+
+    const int smallEnemyScore = enemy->cScore ? enemy->cScore->score * 2 : static_cast<int>(vertexCount) * 200;
+
+    for (std::size_t i = 0; i < vertexCount; i++) {
+        const float angle = static_cast<float>(i) * angleStep;
+
+        const Vec2 velocity{
+            std::cos(angle) * originalSpeed,
+            std::sin(angle) * originalSpeed
+        };
+
+        auto smallEnemy = m_entities.addEntity("smallEnemy");
+
+        smallEnemy->cTransform = std::make_shared<CTransform>(enemy->cTransform->pos, velocity, 0.0f);
+
+        smallEnemy->cShape = std::make_shared<CShape>(smallRadius, static_cast<int>(vertexCount), fillColor, outlineColor, outlineThickness);
+
+        smallEnemy->cCollision = std::make_shared<CCollision>(smallCollisionRadius);
+
+        smallEnemy->cScore = std::make_shared<CScore>(smallEnemyScore);
+
+        smallEnemy->cLifespan = std::make_shared<CLifespan>(smallEnemyLifespan);
+    }
 }
 
 // spawns a bullet from a given entity to a target location
@@ -336,6 +370,9 @@ void Game::sCollision() {
             const float collisionDistance = bullet->cCollision->radius + enemy->cCollision->radius;
 
             if (distance < collisionDistance) {
+
+                spawnSmallEnemies(enemy);
+
                 bullet->destroy();
                 enemy->destroy();
 
@@ -363,6 +400,7 @@ void Game::sCollision() {
 
                 if (distance < collisionDistance) {
                     enemy->destroy();
+                    spawnSmallEnemies(enemy);
                     m_player->destroy();
 
                     spawnPlayer();
